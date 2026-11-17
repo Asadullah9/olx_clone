@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -42,3 +43,42 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class Category(models.Model):
+    """Listing category. Categories nest through `parent` (Electronics -> Mobile Phones)."""
+
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True)
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        # Never cascade: removing a parent must not silently wipe its subtree.
+        on_delete=models.PROTECT,
+        related_name='children',
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'categories'
+        constraints = [
+            # nulls_distinct=False makes two top-level categories with the same
+            # name collide too (Postgres treats NULLs as distinct by default).
+            models.UniqueConstraint(
+                fields=['parent', 'name'],
+                nulls_distinct=False,
+                name='unique_category_name_per_parent',
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        """Reject a parent chain that would loop back to this category."""
+        ancestor = self.parent
+        while ancestor is not None:
+            if self.pk is not None and ancestor.pk == self.pk:
+                raise ValidationError({'parent': 'A category cannot be its own ancestor.'})
+            ancestor = ancestor.parent
