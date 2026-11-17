@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.docker
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+
+# Python
+**/__pycache__
+**/*.pyc
+venv
+.venv
+
+# Secrets / local data
+.env
+**/db.sqlite3
