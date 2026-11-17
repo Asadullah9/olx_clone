@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from core.models import User
+from core.models import Category, User
 
 
 @admin.register(User)
@@ -27,3 +27,12 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('email', 'name', 'password1', 'password2', 'is_staff', 'is_superuser'),
         }),
     )
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'parent']
+    list_filter = ['parent']
+    search_fields = ['name', 'slug']
+    prepopulated_fields = {'slug': ('name',)}
+    autocomplete_fields = ['parent']
