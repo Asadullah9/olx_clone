@@ -24,8 +24,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'parent']
+        fields = ['id', 'name', 'slug', 'description', 'parent']
         read_only_fields = ['id']
+        extra_kwargs = {'description': {'required': False}}
         # Uniqueness is validated explicitly below. DRF's auto validator skips
         # rows whose parent is NULL, so it would miss top-level duplicates.
         validators = []
