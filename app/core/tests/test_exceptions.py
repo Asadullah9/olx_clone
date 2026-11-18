@@ -34,5 +34,19 @@ class ExceptionHandlerTests(SimpleTestCase):
         self.assertEqual(res.status_code, 404)
         self.assertEqual(res.data['error']['code'], 'not_found')
 
-    def test_unhandled_exception_returns_none(self):
-        self.assertIsNone(custom_exception_handler(ValueError('boom'), {}))
+    def test_unhandled_exception_returns_json_500(self):
+        with self.assertLogs('core.exceptions', level='ERROR'):
+            res = custom_exception_handler(ValueError('secret internals'), {})
+
+        self.assertEqual(res.status_code, 500)
+        self.assertFalse(res.data['success'])
+        self.assertIsNone(res.data['data'])
+        self.assertEqual(res.data['error']['code'], 'server_error')
+        self.assertNotIn('secret', res.data['message'])
+
+    def test_envelope_has_success_fields(self):
+        res = custom_exception_handler(exceptions.NotFound('Advertisement not found.'), {})
+
+        self.assertEqual(res.data['success'], False)
+        self.assertEqual(res.data['message'], 'Advertisement not found.')
+        self.assertIsNone(res.data['data'])
