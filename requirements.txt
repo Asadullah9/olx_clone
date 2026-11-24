@@ -2,3 +2,4 @@ Django>=5.2,<5.3
 psycopg[c]>=3.2,<3.3
 djangorestframework>=3.18,<3.19
 drf-spectacular>=0.30,<0.31
+Pillow>=11.0,<12

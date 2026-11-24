@@ -41,12 +41,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_spectacular',
     'core',
     'user',
     'category',
+    'ads',
 ]
 
 MIDDLEWARE = [
@@ -130,14 +132,53 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/media/')
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media')
+
+# File storage. Ad images go through Django's storage API, so switching to S3,
+# GCS, etc. (e.g. via django-storages) only means changing the "default" backend.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
+# Uploads larger than this are streamed to a temp file instead of held in memory.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2.5 * 1024 * 1024
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'core.User'
+
+
+# Advertisements
+
+ADS_MIN_IMAGES = 4
+ADS_MAX_IMAGES = 5
+ADS_MAX_IMAGE_SIZE = int(os.environ.get('ADS_MAX_IMAGE_SIZE_MB', '5')) * 1024 * 1024
+ADS_ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
+ADS_PAGE_SIZE = 10
+ADS_MAX_PAGE_SIZE = 100
+
+
+# Logging: unhandled API errors are logged by core.exceptions before a JSON 500.
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+    },
+}
 
 
 # Email
@@ -178,7 +219,12 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'OLX Clone API',
     'DESCRIPTION': (
         'REST API for the OLX clone. Authenticate by calling `POST /api/user/token/`, '
-        'then click **Authorize** and enter `Token <your-token>`.'
+        'then click **Authorize** and enter `Token <your-token>`.\n\n'
+        'Advertisement endpoints return a uniform envelope: '
+        '`{"success": true, "message": "...", "data": ..., "pagination": {...}}`. '
+        'Errors from every endpoint look like '
+        '`{"success": false, "message": "...", "data": null, '
+        '"error": {"code": "...", "message": "...", "details": {...}}}`.'
     ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
